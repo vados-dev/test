@@ -47,7 +47,9 @@ test.txt: $1
 checksums: checksums.json
 
 checksums.json: bin/checksums.sh $(ALL_RSC)
-				bin/checksums.sh > html/$@
+	@set -euo pipefail; \
+	bin/checksums.sh > html/$@.tmp; \
+	mv -f html/$@.tmp html/$@
 
 #rsc: %.rsc $(ALL_RSC)
 
