@@ -3,87 +3,124 @@
 BUILD_DIR       = $(shell pwd)
 HTML_DIR        := $(BUILD_DIR:/html)
 
-HTML_PATH       := $(realpath $(BUILD_DIR) html)
+ALL_RSC         := $(wildcard html/*.rsc html/*/*.rsc)
 
-ALL_RSC		:= $(wildcard *.rsc */*.rsc)
-GFUNC		:= $(ALL_RSC:AM-GlobaFunc.rsc)
-
-#GEN_RSC		:= $(wildcard *.capsman.rsc *.local.rsc *.wifi.rsc)
-#MARKDOWN	:= $(wildcard *.md doc/*.md doc/mod/*.md)
-#HTML		:= $(MARKDOWN:.md=.html)
-CM_FIND         := $(shell find -name '*.rsc' | sort 2>/dev/null)
-#CHECKSUM        := $(shell md5sum $(CM_FIND) 2>/dev/null)
-#SUM_SED         := $(shell sed -e "s| \./||" -e 's|.rsc$||' 2>/dev/null)
-#SUM_JQ          := $(shell jq --raw-input --null-input '[ inputs | split (" ") | { (.[1]): (.[0]) }] | add' 2>/dev/null)
+#CM_FIND         := $(ALL_RSC:$(shell find -name '*.rsc' | sort 2>/dev/null),$(shell md5sum $*),echo )
+#MD5SUM          := $(wildcard html/*.rsc html/*/*.rsc)
+#RSC             := $(MD5SUM:.rsc=@$(shell bin/checksums.sh) > $@)
+#MD5SUMS         := $(shell md5sum $(CM_FIND) $(SUMS_RSC) 2>/dev/null)
+#@$(eval CHECKSUM := $(shell md5sum $*))$(if $(filter-out $(shell cat $@ 2>/dev/null),$(CHECKSUM)),echo $(CHECKSUM) > $@)
 DATE            ?= $(shell (date '+%T %d.%m.%Y'))
 DTSTAMP         ?= $(shell (date '+%Y%d%m%H%M%S'))
 VERSION         ?= $(shell git symbolic-ref --short HEAD 2>/dev/null)/$(shell git rev-list --count HEAD 2>/dev/null)/$(shell git rev-parse --short=8 HEAD 2>/dev/null)
 OWNER           ?= $(shell whoami)
-export BUILD_DIR DATE VERSION
 
-.PHONY: all checksums
-# $(html)
-#incl fname
+#SEDCMD		?= $(shell sed -e "/^:global CommitId/c :global CommitId \"${COMMITID:-unknown}\";")/$(shell sed )
 
-#checksums commitinfo docs rsc clean
-all: checksums
-# $(html)
-# incl fname
-#%.md5: FORCE
-#   @$(eval CHECKSUM := $(shell md5sum $*))$(if $(filter-out $(shell cat $@ 2>/dev/null),$(CHECKSUM)),echo $(CHECKSUM) > $@)
-#md5sum: $1
-#    @SUM=$$(md5sum $1 | cut -d' ' -f 1); \
-#    echo $$SUM; > $2
+#all: $(WorkFiles)
 
-#checksums docs rsc
+.PHONY: gakke
+# checksums
+#$(WorkFiles)
 
-disp:
-	cd $(html) && \
-	ls -la .
-	cd $(BUILD_DIR) && \
-	ls -la .
-	cd $(HTML_PATH) && \
-	ls -la .
+all: gakke
+# checksums
+
+gakke: test.txt
+
+crakke:
+		for f in $(RSC); do \
+		echo "file: $$f"; > $@ \
+		done
+
+#		SUM=$$(md5sum $$f | cut -d' ' -f 1); \
+#		echo "CHECKSUM: $$SUM"; \
+#		done
+
+test.txt: $1
+		for f in $(ALL_RSC); do \
+		SUM=$$(md5sum $$f | \
+		sed -e "s| \./||" -e 's|.rsc$||' | \
+		jq --raw-input --null-input '[ inputs | split (" ") | { (.[1]): (.[0]) }] | add');
+		done
 
 checksums: checksums.json
 
-checksums.json:				
-				$(ALL_RSC) | \
-				$(shell md5sum $(CM_FIND)) | \
-    			sed -e "s| \./||" -e "s|.rsc$$$||" | \
-    			jq --raw-input --null-input '[ inputs | split (" ") | { (.[1]): (.[0]) }] | add' $< > $@
+checksums.json: bin/checksums.sh $(ALL_RSC)
+				bin/checksums.sh > html/$@
 
-#		$(SUM_SED) | \
-#		$(SUM_JQ) > $@
-#		md5sum $(find -name '*.rsc' | sort) | 
-#		set -e \
-#		$(SUM_SED) $<$(ALL_RSC) > html/$@
-#	sed -e "s| \./||" -e 's|.rsc$||' | \
-#	jq --raw-input --null-input '[ inputs | split (" ") | { (.[1]): (.[0]) }] | add' $< > html/$@
+#rsc: %.rsc $(ALL_RSC)
 
-#contrib/checksums.sh $(ALL_RSC)
-#	contrib/checksums.sh > $@
+#%.rsc: $1.rsc checksums.json
+		echo $1 > $@
 
-commitinfo: global-functions.rsc
-	contrib/commitinfo.sh $< > $<~
-	mv $<~ $<
+fake:
+		for f in $1; do \
+		SUM=$$(md5sum $$f | cut -d' ' -f 1); \
+		echo $$f $$SUM; $2 \
+		done;
 
-docs: $(HTML)
+#rsc $(ALL_RSC)
 
-%.html: %.md general/style.css contrib/html.sh contrib/html.sh.d/head.html contrib/html.sh.d/foot.html
-	contrib/html.sh $< > $@
+#%.rsc 
+#		@echo > $@
 
-rsc: $(GEN_RSC)
+#checksums.json : ALL_RSC := $(wildcard *.rsc */*.rsc)
+#AM-GlobalFunc.rsc : COMMITID	:= $(VERSION)
+#AM-GlobalFunc.rsc : COMMITINFO	:= "$(DATE) - Commit owner: $(OWNER)"
 
-%.capsman.rsc: %.template.rsc contrib/template-capsman.sh
-	contrib/template-capsman.sh $< > $@
+#ifeq ($@,AM-GlobalFunc.rsc)
+#define sed-cmd =
+#    	cd $(WORK_DIR) && \
+#    	sed \
+#		-e "/^:global CommitId/c :global CommitId \"${COMMITID:-unknown}\";" \
+#		-e "/^:global CommitInfo/c :global CommitInfo \"${COMMITINFO:-unknown}\";" \
+#		< "./html/${1}"
+#	endef
+#endif
+#ifeq ($@,checksums.json)
+#	define get-sums =
+#    	cd $(WORK_DIR)/html && \
+#    	md5sum $(find -name '*.rsc' | sort) | \
+#    	sed -e "s| \./||" -e 's|.rsc$||' | \
+#    	jq --raw-input --null-input '[ inputs | split (" ") | { (.[1]): (.[0]) }] | add' > $@
+#	endef
+#endif
 
-%.local.rsc: %.template.rsc contrib/template-local.sh
-	contrib/template-local.sh $< > $@
+#$(WorkFiles):
+#ifeq ($@,checksums.json)
+#	$(get-sums) $(ALL_RSC); > $@
+#endif
 
-%.wifi.rsc: %.template.rsc contrib/template-wifi.sh
-	contrib/template-wifi.sh $< > $@
+#$(FuncFile): ./html/$@
+#	$(sed-cmd) $< > $<~
+#	mv $<~ $<
 
-clean:
-	rm -f $(HTML) checksums.json
-	make -C contrib/ clean
+#$(WORK_DIR)/html/AM-GlobalFunc.rsc
+#	cd $(WORK_DIR)/html && $(WORK_DIR)/bin/commitinfo.sh $< > $<~
+#	mv $<~ $<
+
+#commitinfo: push
+#	$(WORK_DIR)/bin/$@.sh
+#clean
+
+#checkout: git checkout HEAD .
+
+#push: 
+#	git $@ origin
+
+#ifeq (git,$(firstword $(MAKECMDGOALS)))
+#    # Remaining arguments form the commit string
+#    GIT_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#    # ...and turn them into do-nothing targets
+#    $(eval $(GIT_ARGS):;@:)
+#endif
+
+# git function to push to repo
+#git:
+#    git add . && git commit -m "$(GIT_ARGS)" && git push
+
+
+#clean:
+#	rm -f $(HTML) checksums.json
+#	make -C tmpl/ clean

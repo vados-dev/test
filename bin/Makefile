@@ -1,5 +1,8 @@
+# Makefile
 
-ALL_RSC		:= $(wildcard *.rsc */*.rsc)
+BUILD_DIR       = $(shell pwd)
+
+ALL_RSC		:= $(wildcard html/*.rsc html/*/*.rsc)
 GEN_RSC		:= $(wildcard *.capsman.rsc *.local.rsc *.wifi.rsc)
 
 MARKDOWN	:= $(wildcard *.md doc/*.md doc/mod/*.md)
@@ -9,14 +12,16 @@ DATE		?= $(shell date --rfc-email)
 VERSION		?= $(shell git symbolic-ref --short HEAD 2>/dev/null)/$(shell git rev-list --count HEAD 2>/dev/null)/$(shell git rev-parse --short=8 HEAD 2>/dev/null)
 export DATE VERSION
 
-.PHONY: all checksums commitinfo docs rsc clean
+.PHONY: all checksums
+# commitinfo docs rsc clean
 
-all: checksums docs rsc
+all: checksums
+# docs rsc
 
 checksums: checksums.json
 
-checksums.json: contrib/checksums.sh $(ALL_RSC)
-	contrib/checksums.sh > $@
+checksums.json: bin/checksums.sh $(ALL_RSC)
+	bin/checksums.sh > html/$@
 
 commitinfo: global-functions.rsc
 	contrib/commitinfo.sh $< > $<~
