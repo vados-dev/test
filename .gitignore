@@ -1,4 +1,3 @@
-.bak
 .vscode
 # folder for mikro_bak user only
 Mikrotiks
@@ -12,17 +11,10 @@ Mikrotiks
 **/.local
 **/.ssh
 **/.vscode
-**/backup
-**/Precedent-Config.rsc
-# backup and temporary files
-*~
 # patches and related files
 *.orig
 *.patch
 *.rej
-
-# html files (as generated from markdown)
-*.html
 
 # checksums file as used by $ScriptInstallUpdate
 checksums.json
